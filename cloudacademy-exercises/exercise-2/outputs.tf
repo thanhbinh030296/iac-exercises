@@ -4,5 +4,5 @@ output "nat_public_ip" {
 
 
 output "ubuntu_image" {
-  value = data.aws_ami.ubuntu_ami
+  value = data.aws_ami.ubuntu_ami.id
 }

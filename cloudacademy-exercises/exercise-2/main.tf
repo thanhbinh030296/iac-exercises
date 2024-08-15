@@ -152,7 +152,7 @@ resource "aws_launch_template" "launch_template_nginx" {
   monitoring {
     enabled = true
   }
-
+  user_data = filebase64("ec2.userdata")
 
 
   #placement {  
@@ -185,7 +185,7 @@ resource "aws_autoscaling_group" "asg_nginx" {
   health_check_type         = "ELB"
   desired_capacity          = 2
   force_delete              = true
-  placement_group           = aws_placement_group.placement_group_nginx.id
+  #placement_group           = aws_placement_group.placement_group_nginx.id
   launch_template {
     id      = aws_launch_template.launch_template_nginx.id
     version = "$Latest"
@@ -201,10 +201,39 @@ resource "aws_autoscaling_group" "asg_nginx" {
   timeouts {
     delete = "15m"
   }
-
   tag {
     key                 = "lorem"
     value               = "ipsum"
     propagate_at_launch = false
+  }
+}
+
+resource "aws_lb_target_group" "nginx_target_group" {
+  name     = "nginx-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.b0ttle_vpc.id
+  
+}
+
+
+# Create a new load balancer attachment
+resource "aws_autoscaling_attachment" "asg_attachment_targetgroup" {
+  autoscaling_group_name = aws_autoscaling_group.asg_nginx.id
+  lb_target_group_arn = aws_lb_target_group.nginx_target_group.arn
+}
+
+
+resource "aws_lb_listener" "nginx_80" {
+  load_balancer_arn = aws_lb.alb_nginx.arn
+  port              = "80"
+  protocol          = "HTTP"
+  
+  #ssl_policy        = "ELBSecurityPolicy-2016-08"
+  #certificate_arn   = "arn:aws:iam::187416307283:server-certificate/test_cert_rab3wuqwgja25ct3n4jdj2tzu4"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
   }
 }
